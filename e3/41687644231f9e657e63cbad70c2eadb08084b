@@ -1,0 +1,25 @@
+sticker-dispenser/out/axle.stl
+  s_6e6b220d81b9eb::t_0cea34068823c3 1-16130
+sticker-dispenser/out/base.stl
+  s_6e6b220d81b9eb::t_a9da35c5ca014b 1-104050
+sticker-dispenser/out/hub.stl
+  s_6e6b220d81b9eb::t_b5ad1231ce76eb 1-20302
+sticker-dispenser/out/viewer.html
+  s_6e6b220d81b9eb::t_925170b16ae322 1-453
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e341687644231f9e657e63cbad70c2eadb08084b",
+  "prompts": {},
+  "sessions": {
+    "s_6e6b220d81b9eb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0df831f7-ca54-4f39-b373-21915478d89c",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Eric Ma <ericmajinglong@gmail.com>"
+    }
+  }
+}
