@@ -1,0 +1,16 @@
+index.html
+  h_923f9eef54c2c1 4
+sticker-dispenser/README.md
+  h_923f9eef54c2c1 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eac43a8d1e8de87ef12798a72adaed57ffa3c4aa",
+  "prompts": {},
+  "humans": {
+    "h_923f9eef54c2c1": {
+      "author": "Eric Ma <ericmajinglong@gmail.com>"
+    }
+  }
+}
