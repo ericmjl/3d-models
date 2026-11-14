@@ -1,5 +1,7 @@
 # Bear Buddy: a 3D-printable sticker-roll dispenser
 
+_Designed by Claude Code running Claude Opus 5.5 (`claude-opus-5-5`), Nov 14, 2026._
+
 A dispenser for a roll of round reward stickers (stickers on a paper liner wound on a
 cardboard core). The roll spins on a snap-in axle. When you pull the liner tail, the
 liner wraps sharply around a peel edge and the next sticker carries straight on and
