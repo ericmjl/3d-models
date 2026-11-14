@@ -1,0 +1,15 @@
+photos/
+*.log
+*.pid
+work/
+
+# OS / editor / tooling noise
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+
+# images
+*.png
+*.jpg
