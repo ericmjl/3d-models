@@ -1,11 +1,19 @@
 // =====================================================================
-//  Reward-chart token board  ("Bear Buddy" token board)
+//  Reward-chart token board  ("Bear Buddy" and "Bunny Buddy" token boards)
 //  Parametric OpenSCAD model. All units in millimetres.
 //
-//  A board with 7 numbered token cups and a bear head on top stands in two
-//  weighted bear-paw feet, leaning back by `lean` degrees. Each time the child earns
-//  a sticker, they take a bear-face token from the honey pot and drop it into the
-//  next cup.
+//  A board with 7 numbered token cups and an animal head on top stands in two
+//  weighted paw feet, leaning back by `lean` degrees. Each time the child earns a
+//  sticker, they take a token from the pot and drop it into the next cup.
+//
+//  Themes (select with -D 'theme="..."'); the mechanics, sizes and print orientation
+//  are shared, only the decoration changes:
+//    "bear"  (default) - bear head with round ears, bear-face tokens, bear-paw feet,
+//                        beehive honey pot.
+//    "bunny"           - bunny head with tall ears, bunny-face tokens, bunny-paw feet
+//                        (long oval toes), carrot pot (carrot rings and a leafy top).
+//  The bunny's tall ears are a flat outline in the plane of the board, like the bear's
+//  head, so they print flat on the bed with nothing overhanging.
 //
 //  Assembly coordinates:  X = across (the child stands at +Y, so +X is on their left)
 //                         Y = forward, towards the child
@@ -35,6 +43,7 @@
 // =====================================================================
 
 part = "assembly";
+theme = "bear";        // "bear" or "bunny"
 
 // ---------------------------------------------------------------------
 // 1. TOKENS
@@ -73,6 +82,15 @@ ear_dist     = 19.5;   // ear centre distance from the head centre
 ear_ang      = 40;     // ear angle from vertical
 face_h       = 2.4;    // how far the snout stands out of the head (eyes a bit more)
 
+// bunny theme: head and tall ears (all in the plane of the board)
+bun_head_r   = 17.0;   // bunny head
+bun_head_up  = 33.0;   // head centre above the top-row cup centres
+bun_ear_rx   = 7.5;    // ear half width
+bun_ear_ry   = 24.0;   // ear half length (tall ears)
+bun_ear_x    = 9.0;    // ear centres +/- this far from the middle
+bun_ear_up   = 30.0;   // ear centres above the head centre
+bun_ear_tilt = 12;     // ears lean outwards by this many degrees (still flat on the bed)
+
 // ---------------------------------------------------------------------
 // 3. FEET (bear-paw stands)
 // ---------------------------------------------------------------------
@@ -88,6 +106,7 @@ lip_h        = 6.0;    //   ... its height above the slot floor (stays under the
 lip_t        = 5.0;
 toe_r        = 5.0;    // three toes in front, low enough to pass under the rims
 toe_h        = 2.0;    //   ... toe height above the slot floor
+bun_toe_long = 1.35;   // bunny theme: toes stretched into long ovals
 bay_hw       = 11.5;   // open-top weight bay, as far forward as possible: weight near
 bay_y0       = -40.0;  //   the board resists tipping backwards best
 bay_y1       = -6.0;
@@ -104,6 +123,10 @@ pot_bands    = 4;      // beehive-style bands on the outside
 pot_band_out = 1.2;    // how far each band steps out (rises at 56 deg: no support)
 pot_slot_w   = 22.0;   // finger slot in the front, to slide tokens up and out
 pot_slot_z   = 10.0;   // bottom of the finger slot (the U's lowest point)
+// bunny theme: carrot pot = finer carrot rings plus a leafy crown at the back of the rim
+carrot_bands = 6;
+carrot_band_out = 0.9;
+leaf_h       = 12.0;   // height of the leafy crown above the rim (same 1.6 mm wall)
 
 $fn = 64;
 
@@ -118,13 +141,15 @@ top_n  = n_tokens - bottom_n;
 row_gap = ceil(sqrt(pow(R_in + R_out + 1, 2) - pow(pitch / 2, 2)));
 v_row1 = R_out + margin;
 v_row2 = v_row1 + row_gap;
-v_head = v_row2 + head_up;
+v_head = v_row2 + (theme == "bunny" ? bun_head_up : head_up);
 // cup centres [u, v]; numbered bottom row first, left to right
 cups = concat(
     [for (i = [0 : bottom_n - 1]) [(i - (bottom_n - 1) / 2) * pitch, v_row1]],
     [for (i = [0 : top_n - 1])    [(i - (top_n - 1) / 2) * pitch, v_row2]]);
 pot_ri   = token_d / 2 + pot_clr;
 pot_ro   = pot_ri + pot_wall;
+n_bands  = theme == "bunny" ? carrot_bands : pot_bands;
+band_out = theme == "bunny" ? carrot_band_out : pot_band_out;
 pot_h    = pot_floor + n_tokens * token_th + pot_spare;
 // assembly preview positions
 foot_z   = foot_floor;                 // the board's bottom edge sits at this height
@@ -135,7 +160,8 @@ echo(VIEWER_PARAMS = [
     ["lean", lean], ["floor_t", floor_t], ["edge_t", edge_t], ["foot_z", foot_z], ["foot_u", foot_u],
     ["token_d", token_d], ["token_t", token_th], ["rim_h", rim_h], ["R_in", R_in],
     ["cups", cups], ["pot_x", pot_x], ["pot_y", pot_y], ["pot_floor", pot_floor],
-    ["pot_h", pot_h], ["pot_ri", pot_ri], ["v_head", v_head], ["head_r", head_r]]);
+    ["pot_h", pot_h], ["pot_ri", pot_ri], ["v_head", v_head],
+    ["head_r", theme == "bunny" ? bun_head_r : head_r], ["theme", theme]]);
 
 // ---------------------------------------------------------------------
 // HELPERS
@@ -155,9 +181,19 @@ module rounded_rect2d(x0, y0, x1, y1, r) {
 // BOARD (flat, face up)
 // ---------------------------------------------------------------------
 module head2d() {
-    translate([0, v_head]) {
+    if (theme == "bunny") bunny_head2d();
+    else translate([0, v_head]) {
         circle(head_r);
         for (s = [-1, 1]) rotate(-s * ear_ang) translate([0, ear_dist]) circle(ear_r);
+    }
+}
+
+// bunny head with two tall ears, a flat outline in the plane of the board
+module bunny_head2d() {
+    translate([0, v_head]) {
+        circle(bun_head_r);
+        for (s = [-1, 1]) translate([s * bun_ear_x, bun_ear_up]) rotate(-s * bun_ear_tilt)
+            scale([bun_ear_rx, bun_ear_ry]) circle(1, $fn = 96);
     }
 }
 
@@ -190,6 +226,21 @@ module smile_engrave() {   // pressed into the top of the snout
         }
 }
 
+module bunny_face() {
+    translate([0, v_head, floor_t - 0.01]) {
+        for (s = [-1, 1]) translate([s * 6.5, 3.0, 0]) cylinder(r = 2.4, h = face_h + 0.6);  // eyes
+        for (s = [-1, 1]) translate([s * 3.6, -5.5, 0]) cylinder(r = 4.0, h = face_h);       // cheeks
+        translate([0, -1.6, 0]) scale([1.3, 1, 1]) cylinder(r = 1.9, h = face_h + 1.0);       // nose
+    }
+}
+
+module bunny_mouth_engrave() {   // a little "w" pressed into the cheeks
+    translate([0, v_head - 6.8, floor_t + face_h - 0.6]) linear_extrude(1)
+        for (s = [-1, 1]) translate([s * 1.7, 0]) difference() {
+            circle(1.9, $fn = 40); circle(1.1, $fn = 40); translate([-5, 0]) square(10);
+        }
+}
+
 module spokes2d(r, w) {   // three spokes: left, right and down
     for (a = [0, 180, 270]) rotate(a) translate([0, -w / 2]) square([r, w]);
 }
@@ -204,7 +255,7 @@ module board_part() {
                 offset(r = -edge_rib_w) board_outline2d();
             }
             for (c = cups) cup_rim(c);
-            bear_face();
+            if (theme == "bunny") bunny_face(); else bear_face();
         }
         // the token pockets (also clears a neighbour's rim out of each cup)
         for (c = cups) translate([c[0], c[1], floor_t]) cylinder(r = R_in, h = rim_h + 1, $fn = 120);
@@ -212,7 +263,7 @@ module board_part() {
         for (i = [0 : n_tokens - 1]) translate([cups[i][0], cups[i][1], floor_t - num_depth])
             linear_extrude(num_depth + 1)
                 text(str(i + 1), size = num_size, font = num_font, halign = "center", valign = "center");
-        smile_engrave();
+        if (theme == "bunny") bunny_mouth_engrave(); else smile_engrave();
     }
 }
 
@@ -241,7 +292,10 @@ module foot_part() {
                 rounded_rect2d(-lip_hw, -2, lip_hw, edge_t + lip_t, 2.5);
             // three low toes
             for (a = [-40, 0, 40]) translate([sin(a) * 12, edge_t + lip_t - 2 + cos(a) * 6, 0])
-                cylinder(r = toe_r, h = foot_floor + toe_h);
+                if (theme == "bunny")   // long bunny toes, pointing the way each toe faces
+                    rotate(-a) scale([0.8, bun_toe_long, 1]) cylinder(r = toe_r, h = foot_floor + toe_h);
+                else
+                    cylinder(r = toe_r, h = foot_floor + toe_h);
         }
         slot_cut();
         // open-top weight bay (glue the weights in!)
@@ -257,14 +311,14 @@ module foot_part() {
 // degrees from horizontal), runs straight up, then steps back in (upward facing).
 // The inside follows the outside, so the wall stays pot_wall thick everywhere.
 function pot_outer_pts() =
-    let(z_start = pot_floor + 0.5, band_h = (pot_h - z_start - 1.5) / pot_bands,
-        rise = pot_band_out * 1.5)
+    let(z_start = pot_floor + 0.5, band_h = (pot_h - z_start - 1.5) / n_bands,
+        rise = band_out * 1.5)
     concat([[pot_ro, 0]],
-        [for (i = [0 : pot_bands - 1], k = [0 : 2])
+        [for (i = [0 : n_bands - 1], k = [0 : 2])
             let(z0 = z_start + i * band_h)
             k == 0 ? [pot_ro, z0] :
-            k == 1 ? [pot_ro + pot_band_out, z0 + rise] :
-                     [pot_ro + pot_band_out, z0 + band_h - rise]],
+            k == 1 ? [pot_ro + band_out, z0 + rise] :
+                     [pot_ro + band_out, z0 + band_h - rise]],
         [[pot_ro, pot_h - 1.5 + 0.01], [pot_ro, pot_h]]);
 
 module pot_profile2d() {
@@ -274,7 +328,31 @@ module pot_profile2d() {
     polygon(concat([[0, 0]], outer, inner, [[0, pot_floor]]));
 }
 
+// Carrot leaves for the bunny's pot: a crown of three leaves, seen from behind. Each leaf
+// narrows towards its tip, so no edge of the outline faces downwards.
+module leaves2d() {
+    hull() { translate([-6, 0]) square([12, 0.01]); translate([0, leaf_h - 2]) circle(2, $fn = 24); }
+    for (s = [-1, 1]) hull() {
+        translate([s * 9 - 5.5, 0]) square([11, 0.01]);
+        translate([s * 12, leaf_h * 0.78 - 2]) circle(2, $fn = 24);
+    }
+    translate([-15, 0]) square([30, 3]);   // all three join in a band on the rim
+}
+
+module carrot_leaves() {
+    // the pot's top wall (pot_ri..pot_ro) carried on upwards at the back, cut to the
+    // leaf outline; it sits exactly on the wall below
+    translate([0, 0, pot_h - 0.01]) intersection() {
+        difference() {
+            cylinder(r = pot_ro, h = leaf_h + 1, $fn = 120);
+            translate([0, 0, -1]) cylinder(r = pot_ri, h = leaf_h + 3, $fn = 120);
+        }
+        rotate([90, 0, 0]) linear_extrude(pot_ro + 2) leaves2d();
+    }
+}
+
 module pot_part() {
+    if (theme == "bunny") carrot_leaves();
     difference() {
         rotate_extrude($fn = 120) pot_profile2d();
         // finger slot at the front (+Y): a U, open at the top
@@ -292,8 +370,31 @@ module pot_part() {
 // A bear medallion: a round rim (the full 46 mm, easy to grab) with a bear head in
 // the middle on three spokes. The open windows save a lot of print time.
 module token_head2d() {
-    translate([0, -1.5]) circle(12.0);
-    for (s = [-1, 1]) translate([s * 9.3, 8.4]) circle(5.2);
+    if (theme == "bunny") {
+        // bunny head; the tips of the tall ears run into the rim, which holds them firm
+        translate([0, -3]) circle(10.5);
+        for (s = [-1, 1]) translate([s * 4.8, 10.5]) rotate(-s * 10) scale([3.8, 11.2]) circle(1, $fn = 48);
+    } else {
+        translate([0, -1.5]) circle(12.0);
+        for (s = [-1, 1]) translate([s * 9.3, 8.4]) circle(5.2);
+    }
+}
+
+module token_face_pits2d() {
+    if (theme == "bunny") {
+        for (s = [-1, 1]) translate([s * 4.2, -1.2]) circle(1.5, $fn = 24);             // eyes
+        translate([0, -5.0]) scale([1.3, 1]) circle(1.4, $fn = 24);                     // nose
+        translate([0, -7.6]) for (s = [-1, 1]) translate([s * 1.5, 0]) difference() {  // mouth
+            circle(1.9, $fn = 32); circle(1.0, $fn = 32); translate([-5, 0]) square(10);
+        }
+        for (s = [-1, 1]) translate([s * 4.8, 11]) rotate(-s * 10) scale([1.4, 6.5]) circle(1, $fn = 32);  // inner ears
+    } else {
+        for (s = [-1, 1]) translate([s * 4.4, 0.9]) circle(1.6, $fn = 24);
+        translate([0, -3.8]) scale([1.4, 1]) circle(1.9, $fn = 24);
+        translate([0, -6.6]) difference() {
+            circle(3.4, $fn = 40); circle(2.4, $fn = 40); translate([-5, 0]) square(10);
+        }
+    }
 }
 
 module token_part() {
@@ -307,53 +408,54 @@ module token_part() {
         }
         translate([0, 0, -1]) cylinder(r = r - token_rim_w, h = token_th + 2, $fn = 120);
     }
-    // bear head and spokes, with eyes, nose and smile pressed in
+    // head and spokes, with eyes, nose and mouth pressed in
     difference() {
         linear_extrude(token_head_t) {
             token_head2d();
             translate([0, -1.5]) spokes2d(r - 2, token_spoke_w);   // ends inside the rim
         }
-        translate([0, 0, token_head_t - 0.6]) linear_extrude(1) {
-            for (s = [-1, 1]) translate([s * 4.4, 0.9]) circle(1.6, $fn = 24);
-            translate([0, -3.8]) scale([1.4, 1]) circle(1.9, $fn = 24);
-            translate([0, -6.6]) difference() {
-                circle(3.4, $fn = 40); circle(2.4, $fn = 40); translate([-5, 0]) square(10);
-            }
-        }
+        translate([0, 0, token_head_t - 0.6]) linear_extrude(1) token_face_pits2d();
     }
 }
 
 // ---------------------------------------------------------------------
 // LAYOUTS
 // ---------------------------------------------------------------------
+// preview colours: bear = sky blue + yellow, bunny = lavender + white
+c_board = theme == "bunny" ? "#b9a3e3" : "#5bb8f0";
+c_pot   = theme == "bunny" ? "#fbf7ff" : "#ffc93c";
+c_token = theme == "bunny" ? "#ffffff" : "#ffd95a";
+
 module assembly() {
-    color("#5bb8f0") board_pose() board_part();
-    for (s = [-1, 1]) color("#5bb8f0") translate([s * foot_u, 0, 0]) foot_part();
-    color("#ffc93c") translate([pot_x, pot_y, 0]) pot_part();
-    // three tokens already earned, the rest stacked in the honey pot
-    for (i = [0 : 2]) color("#ffd95a")
+    color(c_board) board_pose() board_part();
+    for (s = [-1, 1]) color(c_board) translate([s * foot_u, 0, 0]) foot_part();
+    color(c_pot) translate([pot_x, pot_y, 0]) pot_part();
+    // three tokens already earned, the rest stacked in the pot
+    for (i = [0 : 2]) color(c_token)
         board_pose() translate([cups[i][0], cups[i][1], floor_t]) token_part();
-    for (i = [3 : n_tokens - 1]) color("#ffd95a")
+    for (i = [3 : n_tokens - 1]) color(c_token)
         translate([pot_x, pot_y, pot_floor + (i - 3) * token_th]) token_part();
 }
 
-// print-plate preview: the same layout as tools/make_3mf.py (which writes the real plate
-// 3MF), with the board along the front edge and two rows of parts behind it
+// print-plate preview: the bear's layout from tools/make_3mf.py (which writes the real
+// plate 3MF), with the board along the front edge and two rows of parts behind it. The
+// bunny's taller board does not leave room for the rows, so make_3mf.py packs its real
+// plate around the ears instead (see out/bunny/token_board_plate.3mf).
 module plate() {
     gap = 5;
-    color("#5bb8f0") board_part();
+    color(c_board) board_part();
     // row 1: five tokens
-    for (i = [0 : 4]) color("#ffd447") translate([(i - 2) * (token_d + gap), -gap - token_d / 2, 0])
+    for (i = [0 : 4]) color(c_token) translate([(i - 2) * (token_d + gap), -gap - token_d / 2, 0])
         token_part();
     // row 2: two tokens, the honey pot and the two feet
     y2 = -2 * gap - token_d;
-    w = [token_d, token_d, 2 * (pot_ro + pot_band_out), 2 * foot_hw, 2 * foot_hw];
+    w = [token_d, token_d, 2 * (pot_ro + band_out), 2 * foot_hw, 2 * foot_hw];
     x0 = -(w[0] + w[1] + w[2] + w[3] + w[4] + 4 * gap) / 2;
     function xc(i) = x0 + (i == 0 ? 0 : w[0] + gap) + (i > 1 ? w[1] + gap : 0)
                    + (i > 2 ? w[2] + gap : 0) + (i > 3 ? w[3] + gap : 0) + w[i] / 2;
-    for (i = [0 : 1]) color("#ffd447") translate([xc(i), y2 - token_d / 2, 0]) token_part();
-    color("#ffc93c") translate([xc(2), y2 - w[2] / 2, 0]) pot_part();
-    for (i = [3 : 4]) color("#5bb8f0") translate([xc(i), y2 - (edge_t + lip_t + 9), 0]) foot_part();
+    for (i = [0 : 1]) color(c_token) translate([xc(i), y2 - token_d / 2, 0]) token_part();
+    color(c_pot) translate([xc(2), y2 - w[2] / 2, 0]) pot_part();
+    for (i = [3 : 4]) color(c_board) translate([xc(i), y2 - (edge_t + lip_t + 9), 0]) foot_part();
 }
 
 if (part == "board") board_part();
