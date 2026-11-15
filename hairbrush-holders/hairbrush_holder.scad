@@ -19,8 +19,10 @@
 //      X = along the wall     Y = up the wall     Z = out from the wall
 //  Z = 0 is the back face, on the bed.
 //
-//  theme = "cat"   paddle brush (brush A)
-//  theme = "bunny" pink detangling brush (brush B)
+//  theme = "cat"   paddle brush. Wide flat head, jagged cheek tufts,
+//                  triangular ears on the top corners.
+//  theme = "bunny" pink detangling brush. Tall pear-shaped head,
+//                  one ear upright and one floppy.
 //  Pass either on the command line:
 //      openscad -D 'theme="bunny"' -D 'part="white"' -o white.stl hairbrush_holder.scad
 //
@@ -81,11 +83,7 @@ groove_w    = 1.15;
 groove_d    = 0.40;
 
 /* [Face] */
-rim_w    = 2.6;  // black outline thickness
-cheek    = 30;   // face sticks out past the head, each side
-eye_r    = 5.2;
-whisker_t = 1.8;
-whisker_l = 18;
+rim_w = 2.6;  // black outline thickness. Features stay inside this.
 
 $fn = 48;
 
@@ -116,27 +114,12 @@ csk_h     = (screw_csk_d - screw_d) / 2;
 use_screws = (mount == "screws" || mount == "both");
 use_strip  = (mount == "strip" || mount == "both");
 
-// Face oval. The chin starts below the channel so the cradle sits on the
-// plate. Eyes and whiskers sit in the margin the brush does not cover,
-// and the ears rise beside (cat) or above (bunny) the head.
-cheek_use = (theme == "bunny") ? cheek + 6 : cheek;
-face_rx   = head_w / 2 + cheek_use;
-chin_y    = y_chan0 - 18;
-brow_y    = (theme == "bunny") ? y_shoulder + 92 : y_shoulder + head_l - 28;
-face_cy   = (chin_y + brow_y) / 2;
-face_ry   = (brow_y - chin_y) / 2;
-face_top  = brow_y;
-face_bot  = chin_y;
-
-ear_above  = (theme == "bunny") ? 26 : 16;  // ear tip above the top of the brush head
-ear_h      = (theme == "bunny") ? 78 : 58;
-ear_tip_r  = (theme == "bunny") ? 8.2 : 5.2;
-ear_tip_y  = y_shoulder + head_l + ear_above;
-ear_base_y = ear_tip_y - ear_h;
-plate_top  = ear_tip_y + ear_tip_r;
-plate_bot  = chin_y;
-plate_h    = plate_top - plate_bot;
-plate_w    = face_rx * 2;
+// Design envelope of the silhouette, for the bed check. The exported mesh
+// is measured again; these are the boxes the outlines are drawn inside.
+// Cat head (without ears) is wider than it is tall. Bunny head is taller
+// than it is wide. Ears stay inside the same envelope.
+plate_w = (theme == "bunny") ? 172 : 220;
+plate_h = (theme == "bunny") ? 242 : 216;
 
 module _checks() {
     assert(theme == "cat" || theme == "bunny", "theme must be \"cat\" or \"bunny\"");
@@ -149,8 +132,8 @@ module _checks() {
     assert(retain_h > top_taper + bottom_taper + 8, "retain_h is shorter than the lip tapers");
     assert(entry_h >= 20, "entry mouth is too short");
     assert(z_top > z_clear + lip_in + 0.6, "lip tip has no vertical face");
-    assert(plate_w <= 230 && plate_h <= 248, str("holder is ", plate_w, " x ", plate_h, " and does not fit the bed"));
-    assert(ear_base_y < face_top - 6, "ears do not join the head");
+    // 256 mm bed, 5 mm auto brim on each side, a couple of millimetres spare.
+    assert(plate_w <= 236 && plate_h <= 244, str("holder is ", plate_w, " x ", plate_h, " and does not fit the bed"));
     assert(mount == "screws" || mount == "strip" || mount == "both", "mount must be screws, strip, or both");
 }
 _checks();
@@ -158,8 +141,6 @@ _checks();
 echo(str("KP theme=", theme));
 echo(str("KP plate_w=", plate_w));
 echo(str("KP plate_h=", plate_h));
-echo(str("KP plate_bot=", plate_bot));
-echo(str("KP plate_top=", plate_top));
 echo(str("KP z_top=", z_top));
 echo(str("KP back_t=", back_t));
 echo(str("KP color_h=", color_h));
@@ -180,9 +161,7 @@ echo(str("KP head_l=", head_l));
 echo(str("KP head_t=", head_t));
 echo(str("KP head_base=", head_base));
 echo(str("KP overall_l=", overall_l));
-echo(str("KP face_rx=", face_rx));
-echo(str("KP face_ry=", face_ry));
-echo(str("KP face_cy=", face_cy));
+echo(str("KP rim_w=", rim_w));
 echo(str("KP lip_in=", lip_in));
 echo(str("KP wall_t=", wall_t));
 echo(str("KP clr_side=", clr_side));
@@ -191,109 +170,169 @@ echo(str("KP mount=", mount));
 
 // ---------------------------------------------------------------------
 // Silhouette
+// The cat head, ears left off, is wider than it is tall: a flat crown
+// and three pointed cheek tufts a side. The ears are big triangles on
+// the top corners, pointing up, clear of the brush.
+// The bunny head is a tall pear, narrow at the crown and round in the
+// cheeks. One ear stands up on the left. The other bends over the right
+// and hangs down. Both ears start on a wide base buried in the head, so
+// the join has no neck. A small round-off keeps the tips printable and
+// blends the bunny's ear roots.
 // ---------------------------------------------------------------------
-module face_oval() {
-    translate([0, face_cy])
-        scale([face_rx, face_ry])
-            circle(1, $fn = 96);
+module mirror_outline(right) {
+    n = len(right);
+    pts = [for (i = [0:n - 1]) right[i],
+           for (i = [n - 2:-1:1]) [-right[i][0], right[i][1]]];
+    polygon(pts);
+}
+
+module rounded(r) {
+    offset(r = -r) offset(r = r) children();
+}
+
+module cat_head() {
+    mirror_outline([
+        [0, 4], [24, 7], [46, 16], [64, 30], [72, 42],
+        [76, 50], [98, 58], [74, 68],
+        [82, 78], [108, 92], [80, 106],
+        [86, 116], [104, 128], [72, 138],
+        [52, 144], [28, 147], [0, 149]
+    ]);
 }
 
 module cat_ear(s) {
-    // Tips sit above the brush head; the outer root clears the head's side.
-    hull() {
-        translate([s * 16, ear_base_y])      circle(11, $fn = 28);
-        translate([s * 50, ear_base_y - 8])  circle(10, $fn = 28);
-        translate([s * 34, ear_tip_y])       circle(ear_tip_r, $fn = 22);
-    }
+    polygon([[s * 32, 143], [s * 84, 134], [s * 60, 214]]);
 }
 
-module bunny_ear(s) {
-    // Lean out a little toward the tip.
-    hull() {
-        translate([s * 27, ear_base_y]) circle(13.5, $fn = 36);
-        translate([s * 32, ear_tip_y])  circle(8.2, $fn = 32);
-    }
+module bunny_head() {
+    // Soften the pear before the ears go on, so the head stays an egg
+    // and the ear roots are what get the smaller blend below.
+    rounded(6) mirror_outline([
+        [0, 8], [24, 11], [44, 22], [58, 40], [68, 62],
+        [73, 84], [71, 106], [62, 128], [50, 148],
+        [38, 166], [26, 180], [14, 190], [0, 196]
+    ]);
+}
+
+// Centres and radii of a thick ear. The first circle sits inside the head.
+module ear_ribbon(pts, rs) {
+    n = len(pts);
+    for (i = [0:n - 1])
+        translate(pts[i]) circle(rs[i], $fn = 36);
+    for (i = [0:n - 2])
+        hull() {
+            translate(pts[i])     circle(rs[i], $fn = 36);
+            translate(pts[i + 1]) circle(rs[i + 1], $fn = 36);
+        }
+}
+
+module bunny_upright_ear() {
+    ear_ribbon(
+        [[-12, 155], [-26, 182], [-34, 210], [-30, 234]],
+        [16, 12.5, 10, 8]
+    );
+}
+
+module bunny_floppy_ear() {
+    ear_ribbon(
+        [[8, 170], [26, 190], [50, 196], [70, 172], [82, 142], [84, 116]],
+        [16, 13, 11.5, 11, 10.5, 9]
+    );
 }
 
 module silhouette() {
-    face_oval();
-    if (theme == "bunny") {
-        bunny_ear(-1);
-        bunny_ear(1);
-    } else {
-        cat_ear(-1);
-        cat_ear(1);
-    }
+    if (theme == "bunny")
+        rounded(3.2) {
+            bunny_head();
+            bunny_upright_ear();
+            bunny_floppy_ear();
+        }
+    else
+        rounded(1.3) {
+            cat_head();
+            cat_ear(1);
+            cat_ear(-1);
+        }
 }
 
 // ---------------------------------------------------------------------
 // Black drawing, all in the plane of the plate
 // ---------------------------------------------------------------------
-module eye_at(x, y) {
-    difference() {
-        translate([x, y]) scale([1, 1.12]) circle(eye_r, $fn = 40);
-        // Catchlight: a hole, so the white plate shows through.
-        translate([x - eye_r * 0.32, y + eye_r * 0.34]) circle(eye_r * 0.34, $fn = 24);
+module rod(a, b, w) {
+    hull() {
+        translate(a) circle(w / 2, $fn = 14);
+        translate(b) circle(w / 2, $fn = 14);
     }
 }
 
-module whisker(x0, y0, x1, y1) {
-    hull() {
-        translate([x0, y0]) circle(whisker_t / 2, $fn = 12);
-        translate([x1, y1]) circle(whisker_t / 2, $fn = 12);
+module cat_eye(s) {
+    // Almond, outer corner up. The catchlight is a hole, so the white
+    // plate shows through. The eye sits on the cheek, beside the brush.
+    translate([s * 61, 102]) rotate(s * 20) difference() {
+        scale([8.5, 4.0]) circle(1, $fn = 48);
+        translate([-3.4, 2.0]) circle(1.65, $fn = 20);
     }
 }
 
-module nose_at(x, y, w) {
-    hull() {
-        translate([x - w * 0.42, y + w * 0.08]) circle(w * 0.16, $fn = 16);
-        translate([x + w * 0.42, y + w * 0.08]) circle(w * 0.16, $fn = 16);
-        translate([x, y - w * 0.46])            circle(w * 0.14, $fn = 16);
+module bunny_eye(s) {
+    translate([s * 56, 98]) difference() {
+        circle(6.4, $fn = 48);
+        translate([-s * 1.8, 2.2]) circle(1.8, $fn = 20);
     }
 }
 
-module cat_inner_ear(s) {
-    hull() {
-        translate([s * 24, ear_base_y + 4])  circle(4.4, $fn = 18);
-        translate([s * 42, ear_base_y - 2])  circle(3.8, $fn = 18);
-        translate([s * 34, ear_tip_y - 12])  circle(2.2, $fn = 14);
+module cat_ink() {
+    for (s = [-1, 1]) {
+        cat_eye(s);
+        // Inner ear, inset from the triangle so a white gap remains.
+        polygon([[s * 48, 154], [s * 72, 146], [s * 60, 190]]);
+    }
+    // Triangle nose, point down, with a small W under it.
+    translate([0, 82]) polygon([[0, 4.6], [-5.6, -4.0], [5.6, -4.0]]);
+    rod([-9.0, 73.6], [-4.4, 69.0], 1.85);
+    rod([-4.4, 69.0], [0, 72.6], 1.85);
+    rod([0, 72.6], [4.4, 69.0], 1.85);
+    rod([4.4, 69.0], [9.0, 73.6], 1.85);
+    // Long whiskers across the lower cheek, under the strip and out
+    // toward the tufts. They stay inside the outline.
+    for (s = [-1, 1]) {
+        rod([s * 20, 48], [s * 92, 56], 1.7);
+        rod([s * 20, 60], [s * 96, 70], 1.7);
+        rod([s * 22, 68], [s * 88, 74], 1.7);
     }
 }
 
-module bunny_inner_ear(s) {
-    hull() {
-        translate([s * 27.4, ear_base_y + 16]) circle(7.2, $fn = 28);
-        translate([s * 31.2, ear_tip_y - 16])  circle(3.6, $fn = 24);
+module bunny_ink() {
+    for (s = [-1, 1]) {
+        bunny_eye(s);
+        // Short whiskers on the cheek, beside the brush, clear of the eye.
+        rod([s * 47, 84], [s * 59.0, 85.6], 1.6);
+        rod([s * 47, 78], [s * 60.5, 78.2], 1.6);
+        rod([s * 47, 72], [s * 58.0, 70.6], 1.6);
+        // Two buck teeth.
+        translate([s * 2.5, 67.3]) scale([1.15, 2.15]) circle(1.5, $fn = 28);
     }
+    // Y-shaped nose and mouth.
+    rod([-4.4, 86.5], [0, 80.6], 1.75);
+    rod([ 4.4, 86.5], [0, 80.6], 1.75);
+    rod([0, 80.6], [0, 74.6], 1.75);
+    // Inner ears follow the ribbons and stop short of the roots and tips.
+    ear_ribbon([[-26, 182], [-34, 210], [-30, 228]], [5.2, 4.2, 3.2]);
+    ear_ribbon([[26, 190], [50, 196], [70, 172], [82, 148]], [5.4, 4.8, 4.4, 3.8]);
 }
 
 module black_drawing() {
     difference() {
         silhouette();
-        offset(delta = -rim_w) silhouette();
+        // Round inset. A straight inset grows spikes in the cheek notches.
+        offset(r = -rim_w) silhouette();
     }
-    if (theme == "bunny") {
-        eye_at(-50, y_shoulder + 34);
-        eye_at( 50, y_shoulder + 34);
-        bunny_inner_ear(-1);
-        bunny_inner_ear( 1);
-        // Nose sits on the plate just above the cradle. The brush covers it.
-        nose_at(0, y_shoulder + 8, 11);
-    } else {
-        // Out on the cheek, beside the head, clear of the strip below them.
-        eye_at(-66, y_shoulder + 24);
-        eye_at( 66, y_shoulder + 24);
-        cat_inner_ear(-1);
-        cat_inner_ear( 1);
-        nose_at(0, y_shoulder + 6, 11);
-    }
-    // Three whiskers each side, beside the handle, clear of the cradle
-    // and of the strip outlines further out on the cheek.
-    for (s = [-1, 1], i = [-1, 0, 1]) {
-        y0 = (theme == "bunny" ? y_shoulder - 34 : y_shoulder - 18) + i * 7.5;
-        x0 = s * (slot_w / 2 + wall_t + 5);
-        x1 = s * (slot_w / 2 + wall_t + 5 + whisker_l);
-        whisker(x0, y0, x1, y0 + i * 2.4);
+    // Keep every feature a little inside the outline, so it cannot fuse
+    // with the rim where a tuft or an ear gets narrow.
+    intersection() {
+        if (theme == "bunny") bunny_ink();
+        else cat_ink();
+        offset(r = -(rim_w + 1.15)) silhouette();
     }
 }
 
@@ -372,14 +411,10 @@ module screw_hole(x, y) {
 }
 
 module screw_holes() {
-    // Clear of the eyes, the ears, and the strip outlines.
-    if (theme == "bunny") {
-        lo = [40, 42];
-        hi = [46, 158];
-    } else {
-        lo = [40, 38];
-        hi = [30, 172];
-    }
+    // Chin and forehead, clear of the eyes, the ears, and the strips.
+    // Same holes as before: 4.5 mm with an 8.8 mm countersink.
+    lo = (theme == "bunny") ? [36, 36] : [40, 38];
+    hi = (theme == "bunny") ? [18, 150] : [12, 122];
     for (s = [-1, 1]) {
         screw_hole(s * lo[0], lo[1]);
         screw_hole(s * hi[0], hi[1]);
@@ -404,14 +439,12 @@ module strip_outline(cx, cy, w, h) {
 }
 
 module strip_marks() {
-    // One medium strip each side. The outline is on the front; the
-    // adhesive goes on the flat back, in this same spot.
-    // Cat cheeks are beside the lower head. Bunny cheeks are wider.
-    if (theme == "bunny") {
-        cx = 34; cy = 108; sh = 64;
-    } else {
-        cx = 48; cy = 112; sh = 64;
-    }
+    // One medium strip each side, on the cheek, clear of the eyes and
+    // the whiskers. The outline is on the front; the adhesive goes on
+    // the flat back, in this same spot.
+    cx = (theme == "bunny") ? 32 : 30;
+    cy = (theme == "bunny") ? 100 : 108;
+    sh = 64;
     for (s = [-1, 1])
         strip_outline(s * cx, cy, strip_w, sh);
 }
