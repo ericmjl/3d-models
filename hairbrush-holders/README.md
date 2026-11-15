@@ -9,21 +9,23 @@ the wider head rests on two shoulders, and 45° lips keep the handle from
 falling forward. The channel is open at the bottom, so a long handle hangs
 through.
 
-The back plate is the character, and the two faces are mirror-symmetric. The
-cat is a chubby head, a little wider than it is tall, with short rounded
-ears, big low eyes, blush marks and three short whiskers a side. The bunny
-is a round bun with two long upright ears, big low eyes, blush marks and a
-tiny x. It prints flat on its back (the wall face is on the bed) in two
-colours: a white body, and a black outline plus the eyes, blush and
-inner ears. The black is the top 0.8 mm of the plate, in a recess, so it
-needs no supports. Open the viewer for that holder to orbit it with a
-translucent ghost of the brush seated in the cradle.
+The back plate is a Hello Kitty-style face, for personal use, and the two
+faces are mirror-symmetric. Both share one wide, soft head, a little wider
+than it is tall, with small oval eyes, an outlined oval nose, no mouth, and
+three whiskers a side. The cat has short rounded ears and a bow centered
+between them. The bunny is the same face with two long upright ears, lines
+inside the ears, and the bow on the forehead. It prints flat on its back
+(the wall face is on the bed) in two colours: a white body, and a black
+outline plus the eyes, nose, whiskers, bow, and the bunny's inner ears. The
+black is the top 0.8 mm of the plate, in a recess, so it needs no supports.
+Open the viewer for that holder to orbit it with a translucent ghost of the
+brush seated in the cradle.
 
 | | Cat | Bunny |
 |---|---|---|
 | Viewer | [`cat/out/viewer.html`](cat/out/viewer.html) | [`bunny/out/viewer.html`](bunny/out/viewer.html) |
 | Brush | paddle | pink detangler |
-| Print | **2 h 25 min, 111.0 g, 0 g support** | **2 h 12 min, 99.4 g, 0 g support** |
+| Print | **2 h 13 min, 96.4 g, 0 g support** | **2 h 15 min, 96.0 g, 0 g support** |
 
 The page loads three.js from unpkg. The STLs are embedded, so the model and
 the STL buttons still work from `file://`. **📦 Get the files** uses the Web
@@ -56,7 +58,7 @@ thinner, the brush still sits; if it is thicker, raise `cat_neck_t` or
 | Grip width | about 30 | 30 | about 32 | 32 |
 | Grip thickness | about 20, estimated | 20 | about 15, estimated | 15 |
 | **Slot the neck slides into** | | **28.0 × 21.5 mm, 17 mm between the lips** | | **33.0 × 16.5 mm, 22 mm between the lips** |
-| Plate | | 228 × 218 × 33 mm | | 192 × 234 × 28 mm |
+| Plate | | 230 × 204 × 33 mm | | 230 × 236 × 28 mm |
 
 The cat's 30 mm grip is wider than the 28 mm slot. The grip hangs below the
 lips; you push the neck in from the front, at the open mouth, then slide down.
@@ -100,10 +102,10 @@ Bristles face out. The back of the handle sits against the plate.
 2. Slide it down until the head rests on the two shoulders.
 3. Lift about 32 mm and pull forward to take it out.
 
-The ears stand clear of the brush, and the eyes sit low and wide, beside the
-head, so each face still reads with the brush hanging. The nose on the cat,
-and the little x on the bunny, are in the middle. The brush covers them
-while the brush is in.
+The ears stand clear of the brush, and the eyes and whiskers sit wide, beside
+the head, so each face still reads with the brush hanging. The nose and the
+bow are in the middle. The brush covers them while the brush is in. On the
+bunny, the outer loops of the bow still peek out beside the narrower head.
 
 ## Mounting
 
@@ -142,12 +144,12 @@ footprint is large enough to print with the brim turned off.
 
 | | Cat | Bunny |
 |---|---|---|
-| Model printing time | 2 h 17 m 55 s | 2 h 4 m 17 s |
-| Total estimated time | 2 h 25 m 11 s | 2 h 11 m 33 s |
-| White, including flush | 107.2 g | 96.0 g |
-| Black, including flush | 3.8 g | 3.4 g |
-| Total filament | 111.0 g | 99.4 g |
-| Of which, brim | 2.5 g | 2.1 g |
+| Model printing time | 2 h 5 m 48 s | 2 h 7 m 44 s |
+| Total estimated time | 2 h 13 m 4 s | 2 h 15 m 0 s |
+| White, including flush | 93.2 g | 92.2 g |
+| Black, including flush | 3.2 g | 3.8 g |
+| Total filament | 96.4 g | 96.0 g |
+| Of which, brim | 2.6 g | 2.8 g |
 | Support | 0 g | 0 g |
 | Layers | 167, 33.4 mm tall | 142, 28.4 mm tall |
 
